@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "SeleniumRego": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7269"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "httpPort": 30171,
+      "useSSL": false
+    }
+  }
+}
