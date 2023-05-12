@@ -10,11 +10,6 @@ using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium;
 using WebDriverManager;
 using WebDriverManager.DriverConfigs.Impl;
-using System.Data;
-using System.IO;
-using System.Threading;
-using SeleniumRego;
-
 namespace RegoLookup
 {
     public class Rego

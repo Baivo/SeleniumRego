@@ -6,39 +6,8 @@ COPY ["SeleniumRego/SeleniumRego.csproj", "/src/dotnet-function-app/SeleniumRego
 COPY . /src/dotnet-function-app
 RUN cd /src/dotnet-function-app/SeleniumRego && \
     mkdir -p /home/site/wwwroot && \
-    mkdir -p /home/site/wwwroot/bin && \
     dotnet publish SeleniumRego.csproj --output /home/site/wwwroot
 
-# Install essential packages
-RUN apt-get update \
-    && apt-get install -y \
-        build-essential \
-        cmake \
-        git \
-        wget \
-        unzip \
-        unixodbc-dev \
-        libglib2.0-0 \
-        libnss3 \
-        libxss1 \
-        libasound2 \
-        libappindicator3-1 \
-        fonts-liberation \
-        xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
-  # Install Chrome
-ARG CHROME_VERSION=""
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-  && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
-  && apt-get update -qqy \
-  && apt-get -qqy install \
-    google-chrome-stable \
-  && rm /etc/apt/sources.list.d/google-chrome.list \
-  && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
-
-# Copy the libraries to /home/site/wwwroot/bin
-RUN cp /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 /bin/libglib-2.0.so.0
-RUN cp /usr/bin/google-chrome /bin/google-chrome
 
 FROM mcr.microsoft.com/azure-functions/dotnet:4-appservice
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
@@ -72,4 +41,3 @@ RUN apt-get update \
 COPY . /home/site/wwwroot
     
 COPY --from=installer-env ["/home/site/wwwroot", "/home/site/wwwroot"]
-COPY --from=installer-env ["/home/site/wwwroot/bin", "/home/site/wwwroot/bin"]

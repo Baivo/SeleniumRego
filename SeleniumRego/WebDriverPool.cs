@@ -11,6 +11,8 @@ using WebDriverManager.DriverConfigs.Impl;
 using WebDriverManager;
 using System.IO;
 
+//not used, but could be useful for future reference. Issue with having static pool of drivers is they can be identified and rate limited. 
+//Approach taken in RegoLookup.cs of creating on demand avoids this. 
 namespace SeleniumRego
 {
     public class WebDriverPool
