@@ -11,20 +11,23 @@ using OpenQA.Selenium;
 using WebDriverManager;
 using WebDriverManager.DriverConfigs.Impl;
 using System.Data;
+using System.IO;
+using System.Threading;
+using SeleniumRego;
 
 namespace RegoLookup
 {
-    public static class Rego
+    public class Rego
     {
         [FunctionName("RunLookup")]
-        public static async Task<IActionResult> RunLookup(
+        public async Task<IActionResult> RunLookup(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            
             log.LogInformation("TMR Rego Lookup HTTP trigger function processed a request.");
             string plate = req.Query["plate"];
-
+            
+            
             if (string.IsNullOrEmpty(plate))
             {
                 return new BadRequestObjectResult(new Dictionary<string, string> { { "error", "Plate number not provided." } });
@@ -41,55 +44,58 @@ namespace RegoLookup
         }
         public static async Task<Dictionary<string, string>> RegoLookup(string plate)
         {
-            new DriverManager().SetUpDriver(new ChromeConfig());
-            
             var chromeOptions = new ChromeOptions();
             chromeOptions.AddArguments("--headless", "--no-sandbox", "--disable-dev-shm-usage");
-
-            var driver = new ChromeDriver(chromeOptions);
-            driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(500);
-
-            driver.Navigate().GoToUrl("https://www.service.transport.qld.gov.au/checkrego/application/VehicleSearch.xhtml");
-
-            var tosAccept = By.Id("tAndCForm:confirmButton");
-            bool tosWait = await WaitForPageLoad(driver, TimeSpan.FromSeconds(10), tosAccept);
-            if (!tosWait)
+            new DriverManager().SetUpDriver(new ChromeConfig());
+            
+            IWebDriver webDriver = new ChromeDriver(chromeOptions);
+            try
             {
-                driver.Quit();
-                return new Dictionary<string, string>();
-            }
-            var tosButton = driver.FindElement(tosAccept);
-            tosButton.Click();
+                webDriver.Manage().Timeouts().ImplicitWait = TimeSpan.FromMilliseconds(500);
 
-            var waitForElementRegoInput = By.Id("vehicleSearchForm:plateNumber");
-            bool regoInputVisible = await WaitForPageLoad(driver, TimeSpan.FromSeconds(10), waitForElementRegoInput);
-            if (!regoInputVisible)
+                webDriver.Navigate().GoToUrl("https://www.service.transport.qld.gov.au/checkrego/application/VehicleSearch.xhtml");
+
+                var tosAccept = By.Id("tAndCForm:confirmButton");
+                bool tosWait = await WaitForPageLoad(webDriver, TimeSpan.FromSeconds(10), tosAccept);
+                if (!tosWait)
+                {
+                    return new Dictionary<string, string>();
+                }
+                var tosButton = webDriver.FindElement(tosAccept);
+                tosButton.Click();
+
+                var waitForElementRegoInput = By.Id("vehicleSearchForm:plateNumber");
+                bool regoInputVisible = await WaitForPageLoad(webDriver, TimeSpan.FromSeconds(10), waitForElementRegoInput);
+                if (!regoInputVisible)
+                {
+                    return new Dictionary<string, string>(); // Return an empty dictionary
+                }
+
+                var regoInput = webDriver.FindElement(waitForElementRegoInput);
+                var regoPlate = plate;
+                regoInput.SendKeys(regoPlate);
+
+                var searchButton = webDriver.FindElement(By.Id("vehicleSearchForm:confirmButton"));
+                searchButton.Click();
+
+                var waitForElementResultsPage = By.Id("j_id_5s");
+                var waitTimeResultsPage = new TimeSpan(0, 0, 5);
+                var waitResultsPage = await WaitForPageLoad(webDriver, waitTimeResultsPage, waitForElementResultsPage);
+                if (waitResultsPage != true)
+                {
+                    return new Dictionary<string, string>();
+                }
+                else
+                {
+                    var data = ExtractRegoData(webDriver);
+                    return data;
+                }
+            }
+            finally
             {
-                driver.Quit();
-                return new Dictionary<string, string>(); // Return an empty dictionary
+                webDriver.Quit();
             }
-
-            var regoInput = driver.FindElement(waitForElementRegoInput);
-            var regoPlate = plate;
-            regoInput.SendKeys(regoPlate);
-
-            var searchButton = driver.FindElement(By.Id("vehicleSearchForm:confirmButton"));
-            searchButton.Click();
-
-            var waitForElementResultsPage = By.Id("j_id_5s");
-            var waitTimeResultsPage = new TimeSpan(0, 0, 5);
-            var waitResultsPage = await WaitForPageLoad(driver, waitTimeResultsPage, waitForElementResultsPage);
-            if (waitResultsPage != true)
-            {
-                driver.Quit();
-                return new Dictionary<string, string>();
-            }
-            else
-            {
-                var data = ExtractRegoData(driver);
-                driver.Quit();
-                return data;
-            }
+            
         }
         public static Dictionary<string, string> ExtractRegoData(IWebDriver driver)
         {
@@ -110,6 +116,7 @@ namespace RegoLookup
             }
             return result;
         }
+
         public static async Task<bool> WaitForPageLoad(IWebDriver driver, TimeSpan waitTime, By waitForElement)
         {
             var endTime = DateTime.Now.Add(waitTime);
