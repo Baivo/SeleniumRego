@@ -73,7 +73,7 @@ namespace RegoLookup
                 var searchButton = webDriver.FindElement(By.Id("vehicleSearchForm:confirmButton"));
                 searchButton.Click();
 
-                var waitForElementResultsPage = By.Id("j_id_5s");
+                var waitForElementResultsPage = By.Id("j_id_61");
                 var waitTimeResultsPage = new TimeSpan(0, 0, 5);
                 var waitResultsPage = await WaitForPageLoad(webDriver, waitTimeResultsPage, waitForElementResultsPage);
                 if (waitResultsPage != true)
