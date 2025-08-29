@@ -30,7 +30,7 @@ The project consists of the following main components:
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/your-repo/SeleniumRego.git
+git clone https://github.com/Baivo/SeleniumRego.git
 cd SeleniumRego
 ```
 ## Build and Run Locally
